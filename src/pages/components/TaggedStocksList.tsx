@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Tag } from "antd";
-import { MdKeyboardArrowDown, MdKeyboardArrowUp } from "react-icons/md";
+import { MdKeyboardArrowDown, MdKeyboardArrowRight } from "react-icons/md";
 
 interface Stock {
   code: string;
@@ -41,18 +41,19 @@ const TaggedStocksList: React.FC<TaggedStocksListProps> = ({
         borderRadius: "8px",
       }}
     >
-      <div 
-        style={{ 
-          display: "flex", 
-          justifyContent: "space-between", 
-          alignItems: "center", 
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-start",
+          alignItems: "center",
           marginBottom: "8px",
-          cursor: "pointer"
+          cursor: "pointer",
+          userSelect: "none",
         }}
         onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
       >
-        <div style={{ fontWeight: "500" }}>标签分组：</div>
-        {isPanelCollapsed ? <MdKeyboardArrowDown /> : <MdKeyboardArrowUp />}
+        {isPanelCollapsed ? <MdKeyboardArrowRight /> : <MdKeyboardArrowDown />}
+        <span style={{ fontWeight: "500" }}>标签分组：</span>
       </div>
       <div style={{ display: isPanelCollapsed ? "none" : "block" }}>
         {Object.entries(taggedStocks).map(([tag, stocks]) => (
@@ -64,18 +65,19 @@ const TaggedStocksList: React.FC<TaggedStocksListProps> = ({
                 marginBottom: "8px",
                 color: "#666",
                 display: "flex",
-                justifyContent: "space-between",
+                justifyContent: "flex-start",
                 alignItems: "center",
                 cursor: "pointer",
+                userSelect: "none",
               }}
               onClick={() => toggleCollapse(tag)}
             >
-              <span>{tag}</span>
               {collapsedTags[tag] ? (
-                <MdKeyboardArrowDown />
+                <MdKeyboardArrowRight />
               ) : (
-                <MdKeyboardArrowUp />
+                <MdKeyboardArrowDown />
               )}
+              <span>{tag}</span>
             </div>
             <div style={{ display: collapsedTags[tag] ? "none" : "block" }}>
               {stocks.map((stock) => (

@@ -1,23 +1,32 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { Table, Tag, Space, Button, Input, Popover, Select } from "antd";
-import type { ColumnsType } from "antd/es/table";
-import { FilterControls } from "./components/FilterControls";
-import { FilterConditions } from "./components/FilterConditions";
-import { ObservationList } from "./components/ObservationList";
-import { TaggedStocksList } from "./components/TaggedStocksList";
-import { parseCookie, parseHTMLTable } from "../utils/utils";
 import {
-  StockData,
+  Table,
+  Tag,
+  Space,
+  Button,
+  Input,
+  Popover,
+  Select,
+  Tooltip,
+} from "antd";
+import type { ColumnsType } from "antd/es/table";
+import { FilterControls } from "./FilterControls";
+import { FilterConditions } from "../components/FilterConditions";
+import { ObservationList } from "../components/ObservationList";
+import { TaggedStocksList } from "../components/TaggedStocksList";
+import {
   FilterObject,
   ObservedStocks,
   TaggedStock,
   TaggedStocks,
-} from "../types";
-import request from "../utils/axios";
+} from "../../types";
+import request from "../../utils/axios";
 import { MdDelete } from "react-icons/md";
+import { BsQuestionCircle } from "react-icons/bs";
+import { DongCaiStockData, transformToDongCaiStockDataList } from "./utils";
 
-export const tongHuaShunUrl =
-  "https://q.10jqka.com.cn/#refCountId=www_50a1b74a_693";
+export const dongCaiUrl =
+  "https://quote.eastmoney.com/center/gridlist.html#sh_a_board";
 
 const defaultFilterObj = {
   /** 涨跌幅 */
@@ -58,12 +67,9 @@ const defaultFilterObj = {
   },
 };
 
-export const Stock: React.FC = () => {
-  // 模拟数据
-  const [dataSource, setDataSource] = useState<StockData[]>([]);
-  const [pageSize, setPageSize] = useState(50);
-  const [pageStart, setPageStart] = useState(1);
-  const [pageEnd, setPageEnd] = useState(10);
+export const DongCaiStock: React.FC = () => {
+  const [dataSource, setDataSource] = useState<DongCaiStockData[]>([]);
+  const [queryPageSize, setQueryPageSize] = useState(200);
   const [loading, setLoading] = useState(false);
 
   const [filterObj, setFilterObj] = useState(defaultFilterObj);
@@ -75,12 +81,8 @@ export const Stock: React.FC = () => {
   const [newTag, setNewTag] = useState("");
 
   const [cookie, setCookie] = useState("");
-  const [cookie2, setCookie2] = useState("");
-  const [cookieObj, setCookieObj] = useState<Record<string, string>>({});
 
-  const hexinV = useMemo(() => {
-    return cookieObj.v;
-  }, [cookieObj]);
+  const [searchText, setSearchText] = useState("");
 
   const columns = [
     {
@@ -113,15 +115,15 @@ export const Stock: React.FC = () => {
     },
     {
       title: "现价",
-      dataIndex: "currentPrice",
-      key: "currentPrice",
+      dataIndex: "price",
+      key: "price",
       width: 100,
     },
     {
       title: "涨跌幅(%)",
       dataIndex: "changeRate",
       key: "changeRate",
-      width: 110,
+      width: 140,
       sorter: (a, b) => a.changeRate - b.changeRate,
       render: (text) => (
         <span
@@ -138,10 +140,17 @@ export const Stock: React.FC = () => {
       width: 100,
     },
     {
+      title: "市净率",
+      dataIndex: "pbRatio",
+      key: "pbRatio",
+      width: 100,
+    },
+    {
       title: "流通市值",
-      dataIndex: "marketValue",
-      key: "marketValue",
+      dataIndex: "circulationMarketValue",
+      key: "circulationMarketValue",
       width: 120,
+      render: (value) => `${value.toFixed(2)}亿`,
     },
     {
       title: "涨跌",
@@ -163,11 +172,31 @@ export const Stock: React.FC = () => {
       width: 100,
     },
     {
-      title: "量比",
+      title: (
+        <Space>
+          量比
+          <Tooltip title="量比 = 当日成交量 ÷ (过去5个交易日平均每分钟成交量 × 当日交易时间(分钟))">
+            <BsQuestionCircle style={{ fontSize: "14px", color: "#999" }} />
+          </Tooltip>
+        </Space>
+      ),
       dataIndex: "volumeRatio",
       key: "volumeRatio",
       width: 100,
       sorter: (a, b) => a.volumeRatio - b.volumeRatio,
+    },
+    {
+      title: "主力净流入",
+      dataIndex: "mainForceNetInflow",
+      key: "mainForceNetInflow",
+      width: 120,
+      render: (value) => (
+        <span
+          style={{ color: value > 0 ? "red" : value < 0 ? "green" : "black" }}
+        >
+          {`${value.toFixed(2)}万`}
+        </span>
+      ),
     },
     {
       title: "振幅(%)",
@@ -177,24 +206,16 @@ export const Stock: React.FC = () => {
     },
     {
       title: "成交额",
-      dataIndex: "dealAmount",
-      key: "dealAmount",
+      dataIndex: "amount",
+      key: "amount",
       width: 120,
-      sorter: (a, b) => {
-        // 移除可能的单位（万、亿）并转换为数值进行比较
-        const getValue = (str) => {
-          const num = parseFloat(str.replace(/,/g, ""));
-          if (str.includes("万")) return num * 10000;
-          if (str.includes("亿")) return num * 100000000;
-          return num;
-        };
-        return getValue(a.dealAmount) - getValue(b.dealAmount);
-      },
+      sorter: (a, b) => a.amount - b.amount,
+      render: (value) => `${value.toFixed(2)}万`,
     },
     {
-      title: "流通股",
-      dataIndex: "floatingStock",
-      key: "floatingStock",
+      title: "成交量",
+      dataIndex: "volume",
+      key: "volume",
       width: 120,
     },
     {
@@ -237,14 +258,20 @@ export const Stock: React.FC = () => {
                     onChange={(value) => handleAddTag(record.code, value)}
                     options={availableTags.map((tag) => ({
                       label: (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
                           <span>{tag}</span>
                           <MdDelete
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDeleteTag(tag);
                             }}
-                            style={{ cursor: 'pointer', color: '#ff4d4f' }}
+                            style={{ cursor: "pointer", color: "#ff4d4f" }}
                           />
                         </div>
                       ),
@@ -280,9 +307,13 @@ export const Stock: React.FC = () => {
             trigger="click"
             placement="left"
           >
-            <Button type={getStockTag(record.code) ? "primary" : "default"}>
-              {getStockTag(record.code) || "标签"}
-            </Button>
+            <div style={{ cursor: "pointer" }}>
+              {getStockTag(record.code) ? (
+                <Tag color="blue">{getStockTag(record.code)}</Tag>
+              ) : (
+                <Tag color="default">打标签</Tag>
+              )}
+            </div>
           </Popover>
         </Space>
       ),
@@ -299,16 +330,11 @@ export const Stock: React.FC = () => {
   };
 
   useEffect(() => {
-    const cookieStr = localStorage.getItem("cookie");
+    const cookieStr = localStorage.getItem("dongCaiCookie");
     if (cookieStr) {
       setCookie(cookieStr);
-      setCookieObj(parseCookie(cookieStr));
     }
-    const cookie2Str = localStorage.getItem("cookie2");
-    if (cookie2Str) {
-      setCookie2(cookie2Str);
-    }
-    const dataSource = localStorage.getItem("dataSource");
+    const dataSource = localStorage.getItem("dongCaiDataSource");
     if (dataSource) {
       setDataSource(JSON.parse(dataSource));
     }
@@ -459,70 +485,41 @@ export const Stock: React.FC = () => {
     // 这里可以添加刷新数据的逻辑
     console.log("刷新数据");
     setLoading(true);
-    const dataList = [];
-    for (let i = pageStart; i <= pageEnd; i++) {
-      await request
-        .get("/get-stock/" + i + "/" + i, {
-          headers: {
-            "coustom-cookie": cookie,
-            "hexin-v": hexinV,
-          },
-        })
-        .then((res) => {
-          const data = parseHTMLTable(res as unknown as string[]);
-          dataList.push(...data);
-        })
-        .catch(() => {
-          // setLoading(false);
-        });
-      await new Promise((resolve) => setTimeout(resolve, 300));
-    }
+    const res = await request
+      .get(`/dong-fang-cai-fu/data/${queryPageSize}`, {
+        headers: {
+          "coustom-cookie": cookie,
+        },
+      })
+      .catch(() => {
+        // setLoading(false);
+      });
     setLoading(false);
+    const dataList = transformToDongCaiStockDataList(res.data.diff);
     console.log("res ====", dataList);
-    localStorage.setItem("dataSource", JSON.stringify(dataList));
-    setDataSource(dataList);
-  };
-
-  const handleRefreshAndAppend = async () => {
-    // 这里可以添加刷新数据的逻辑
-    console.log("增加数据");
-    setLoading(true);
-    const dataList = [...dataSource];
-    for (let i = dataList.length / 20 + 1; i <= pageEnd; i++) {
-      await request
-        .get("/get-stock/" + i + "/" + i, {
-          headers: {
-            "coustom-cookie": cookie2,
-            "hexin-v": hexinV,
-          },
-        })
-        .then((res) => {
-          const data = parseHTMLTable(res as unknown as string[]);
-          dataList.push(...data);
-        })
-        .catch(() => {
-          // setLoading(false);
-        });
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-    setLoading(false);
-    console.log("res ====", dataList);
-    localStorage.setItem("dataSource", JSON.stringify(dataList));
-    if (dataList.length === 0) {
-      return;
-    }
+    localStorage.setItem("dongCaiDataSource", JSON.stringify(dataList));
     setDataSource(dataList);
   };
 
   const filterDataSource = useMemo(() => {
     return dataSource.filter((item) => {
-      // Convert string values to numbers and handle unit conversions
-      const changeRate = parseFloat(item.changeRate.replace("%", ""));
-      const turnoverRate = parseFloat(item.turnoverRate.replace("%", ""));
-      const volumeRatio = parseFloat(item.volumeRatio);
-      const marketValue = parseFloat(item.marketValue.replace(/,/g, ""));
-      const amplitude = parseFloat(item.amplitude.replace("%", ""));
-      const peRatio = parseFloat(item.peRatio);
+      // 搜索过滤
+      if (searchText) {
+        const searchLower = searchText.toLowerCase();
+        const nameMatch = item.name.toLowerCase().includes(searchLower);
+        const codeMatch = item.code.toLowerCase().includes(searchLower);
+        if (!nameMatch && !codeMatch) {
+          return false;
+        }
+      }
+
+      // 数据已经是数字类型，不需要转换
+      const changeRate = item.changeRate;
+      const turnoverRate = item.turnoverRate;
+      const volumeRatio = item.volumeRatio;
+      const marketValue = item.circulationMarketValue;
+      const amplitude = item.amplitude;
+      const peRatio = item.peRatio;
 
       return (
         (!filterObj.changeRate.enabled ||
@@ -546,30 +543,21 @@ export const Stock: React.FC = () => {
             peRatio <= filterObj.peRatio.max))
       );
     });
-  }, [dataSource, filterObj]);
+  }, [dataSource, filterObj, searchText]);
 
   return (
-    <div style={{ padding: "20px", paddingBottom: "100px" }}>
+    <div style={{ padding: "20px" }}>
       <FilterControls
         loading={loading}
         cookie={cookie}
         setCookie={(value) => {
           setCookie(value);
-          setCookieObj(parseCookie(value));
-          localStorage.setItem("cookie", value);
+          localStorage.setItem("dongCaiCookie", value);
         }}
-        cookie2={cookie2}
-        setCookie2={(value) => {
-          setCookie2(value);
-          localStorage.setItem("cookie2", value);
-        }}
-        pageStart={pageStart}
-        setPageStart={setPageStart}
-        pageEnd={pageEnd}
-        setPageEnd={setPageEnd}
+        queryPageSize={queryPageSize}
+        setQueryPageSize={setQueryPageSize}
         onRefresh={handleRefresh}
-        onRefreshAndAppend={handleRefreshAndAppend}
-        tongHuaShunUrl={tongHuaShunUrl}
+        dongCaiUrl={dongCaiUrl}
       />
       {Object.entries(taggedStocks).length > 0 && (
         <TaggedStocksList
@@ -589,6 +577,8 @@ export const Stock: React.FC = () => {
           localStorage.setItem("filterObj", JSON.stringify(v));
           setFilterObj(v as any);
         }}
+        onSearch={setSearchText}
+        searchValue={searchText}
       />
       <Table
         dataSource={filterDataSource}
@@ -596,13 +586,11 @@ export const Stock: React.FC = () => {
         scroll={{ x: 1500, y: "calc(100vh - 500px)" }}
         pagination={{
           total: filterDataSource.length,
-          defaultPageSize: 50,
+          defaultPageSize: 200,
           showSizeChanger: true,
           showQuickJumper: true,
-          onChange: (page, pageSize) => {
-            setPageSize(pageSize);
-          },
           showTotal: (total) => `共 ${total} 条`,
+          pageSizeOptions: [50, 100, 200, 500, 1000],
         }}
         sortDirections={["descend", "ascend", "descend"]}
       />

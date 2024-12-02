@@ -33,6 +33,10 @@ export function parseHTMLTable(htmlStringList: string[]) {
     if (record.amplitude === "--") {
       record.amplitude = "0";
     }
+    if (record.peRatio === "亏损") {
+      record.peRatio = "-1";
+    }
+
     data.push(record);
   });
 
@@ -54,4 +58,9 @@ export const parseCookie = (cookieStr) => {
     }
     return acc;
   }, {});
+};
+
+export const getHeXinVFromCookie = (cookieStr) => {
+  const cookieObj = parseCookie(cookieStr);
+  return cookieObj["v"];
 };

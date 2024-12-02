@@ -1,17 +1,31 @@
 export interface StockData {
+  /** 股票代码 */
   code: string;
+  /** 股票名称 */
   name: string;
+  /** 现价 */
   price: string;
+  /** 涨跌幅(%) */
   changeRate: string;
+  /** 涨跌额 */
   priceChange: string;
+  /** 涨速 */
   speed: string;
+  /** 换手(%) */
   turnoverRate: string;
+  /** 振幅(%) */
   amplitude: string;
+  /** 成交量 */
   volume: string;
+  /** 成交额 */
   amount: string;
+  /** 量比 */
   volumeRatio: string;
+  /** 流通股 */
   floatingStock: string;
+  /** 流通市值 */
   marketValue: string;
+  /** 市盈率 */
   peRatio: string;
 }
 

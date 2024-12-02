@@ -1,9 +1,24 @@
-import React, { useEffect, useMemo, useState, useRef } from "react";
-import { Button, Input, InputNumber, Table, Switch, Tag } from "antd";
-import request from "../utils/axios";
-import { FilterControls } from "./components/FilterControls";
-import { FilterConditions } from "./components/FilterConditions";
-import { parseHTMLTable, parseCookie } from "../utils/utils";
+import React, { useState, useMemo, useEffect, useRef } from "react";
+import { Table, Tag, Space, Button, Input, Popover, Select } from "antd";
+import type { ColumnsType } from "antd/es/table";
+import { FilterControls } from "./FilterControls";
+import { FilterConditions } from "../components/FilterConditions";
+import { ObservationList } from "../components/ObservationList";
+import { TaggedStocksList } from "../components/TaggedStocksList";
+import {
+  getHeXinVFromCookie,
+  parseCookie,
+  parseHTMLTable,
+} from "../../utils/utils";
+import {
+  StockData,
+  FilterObject,
+  ObservedStocks,
+  TaggedStock,
+  TaggedStocks,
+} from "../../types";
+import request from "../../utils/axios";
+import { MdDelete } from "react-icons/md";
 
 export const tongHuaShunUrl =
   "https://q.10jqka.com.cn/#refCountId=www_50a1b74a_693";
@@ -47,9 +62,9 @@ const defaultFilterObj = {
   },
 };
 
-export const Stock = () => {
+export const Stock: React.FC = () => {
   // 模拟数据
-  const [dataSource, setDataSource] = useState([]);
+  const [dataSource, setDataSource] = useState<StockData[]>([]);
   const [pageSize, setPageSize] = useState(50);
   const [pageStart, setPageStart] = useState(1);
   const [pageEnd, setPageEnd] = useState(10);
@@ -57,17 +72,19 @@ export const Stock = () => {
 
   const [filterObj, setFilterObj] = useState(defaultFilterObj);
 
-  const [observedStocks, setObservedStocks] = useState({});
+  const [observedStocks, setObservedStocks] = useState<ObservedStocks>({});
+
+  const [taggedStocks, setTaggedStocks] = useState<TaggedStocks>({});
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState("");
 
   const [cookie, setCookie] = useState("");
   const [cookie2, setCookie2] = useState("");
-  const [cookieObj, setCookieObj] = useState({});
+  // const [cookieObj, setCookieObj] = useState<Record<string, string>>({});
 
-  const hexinV = useMemo(() => {
-    return cookieObj.v;
-  }, [cookieObj]);
-
-  const iframeRef = useRef(null);
+  // const hexinV = useMemo(() => {
+  //   return cookieObj.v;
+  // }, [cookieObj]);
 
   const columns = [
     {
@@ -194,32 +211,107 @@ export const Stock = () => {
       title: "操作",
       key: "action",
       fixed: "right",
-      width: 120,
+      width: 200,
       render: (_, record) => (
-        <Button
-          type={
-            Object.values(observedStocks)
+        <Space>
+          <Button
+            type={
+              Object.values(observedStocks)
+                .flat()
+                .some((stock) => stock.code === record.code)
+                ? "primary"
+                : "default"
+            }
+            onClick={() => handleAddToObserved(record.code)}
+          >
+            {Object.values(observedStocks)
               .flat()
               .some((stock) => stock.code === record.code)
-              ? "primary"
-              : "default"
-          }
-          onClick={() => handleAddToObserved(record.code)}
-        >
-          {Object.values(observedStocks)
-            .flat()
-            .some((stock) => stock.code === record.code)
-            ? "取消观察"
-            : "加入观察"}
-        </Button>
+              ? "取消观察"
+              : "加入观察"}
+          </Button>
+          <Popover
+            content={
+              <div style={{ width: "200px" }}>
+                <Space direction="vertical" style={{ width: "100%" }}>
+                  <Select
+                    style={{ width: "100%" }}
+                    placeholder="选择标签"
+                    value={getStockTag(record.code)}
+                    onChange={(value) => handleAddTag(record.code, value)}
+                    options={availableTags.map((tag) => ({
+                      label: (
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <span>{tag}</span>
+                          <MdDelete
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteTag(tag);
+                            }}
+                            style={{ cursor: "pointer", color: "#ff4d4f" }}
+                          />
+                        </div>
+                      ),
+                      value: tag,
+                    }))}
+                    dropdownRender={(menu) => (
+                      <>
+                        {menu}
+                        <div style={{ padding: "8px" }}>
+                          <Input.Group compact>
+                            <Input
+                              style={{ width: "70%" }}
+                              value={newTag}
+                              onChange={(e) => setNewTag(e.target.value)}
+                              onPressEnter={() => handleCreateTag(newTag)}
+                              placeholder="新建标签"
+                            />
+                            <Button
+                              style={{ width: "30%" }}
+                              type="primary"
+                              onClick={() => handleCreateTag(newTag)}
+                            >
+                              添加
+                            </Button>
+                          </Input.Group>
+                        </div>
+                      </>
+                    )}
+                  />
+                </Space>
+              </div>
+            }
+            trigger="click"
+            placement="left"
+          >
+            <Button type={getStockTag(record.code) ? "primary" : "default"}>
+              {getStockTag(record.code) || "标签"}
+            </Button>
+          </Popover>
+        </Space>
       ),
     },
   ];
+
+  const getStockTag = (code: string) => {
+    for (const [tag, stocks] of Object.entries(taggedStocks)) {
+      if (stocks.some((stock) => stock.code === code)) {
+        return tag;
+      }
+    }
+    return null;
+  };
+
   useEffect(() => {
     const cookieStr = localStorage.getItem("cookie");
     if (cookieStr) {
       setCookie(cookieStr);
-      setCookieObj(parseCookie(cookieStr));
     }
     const cookie2Str = localStorage.getItem("cookie2");
     if (cookie2Str) {
@@ -233,6 +325,15 @@ export const Stock = () => {
     const storedStocks = localStorage.getItem("observedStocks");
     if (storedStocks) {
       setObservedStocks(JSON.parse(storedStocks));
+    }
+    // Load tagged stocks from localStorage
+    const storedTaggedStocks = localStorage.getItem("taggedStocks");
+    if (storedTaggedStocks) {
+      setTaggedStocks(JSON.parse(storedTaggedStocks));
+    }
+    const storedTags = localStorage.getItem("availableTags");
+    if (storedTags) {
+      setAvailableTags(JSON.parse(storedTags));
     }
     // Load filter settings from localStorage
     const storedFilterObj = localStorage.getItem("filterObj");
@@ -277,12 +378,90 @@ export const Stock = () => {
         newStocks[today].push({
           code: stockInfo.code,
           name: stockInfo.name,
+          date: today,
         });
       }
 
       localStorage.setItem("observedStocks", JSON.stringify(newStocks));
       return newStocks;
     });
+  };
+
+  const handleDeleteDateStocks = (date: string) => {
+    setObservedStocks((prev) => {
+      const newStocks = { ...prev };
+      delete newStocks[date];
+      localStorage.setItem("observedStocks", JSON.stringify(newStocks));
+      return newStocks;
+    });
+  };
+
+  const handleAddTag = (code: string, tag: string) => {
+    const stockInfo = dataSource.find((item) => item.code === code);
+    if (!stockInfo) return;
+
+    setTaggedStocks((prev) => {
+      const newTaggedStocks = { ...prev };
+
+      // Remove stock from all other tags if it exists
+      Object.keys(newTaggedStocks).forEach((existingTag) => {
+        newTaggedStocks[existingTag] =
+          newTaggedStocks[existingTag]?.filter(
+            (stock) => stock.code !== code
+          ) || [];
+        if (newTaggedStocks[existingTag].length === 0) {
+          delete newTaggedStocks[existingTag];
+        }
+      });
+
+      // Add stock to new tag
+      if (!newTaggedStocks[tag]) {
+        newTaggedStocks[tag] = [];
+      }
+      newTaggedStocks[tag].push({
+        code: stockInfo.code,
+        name: stockInfo.name,
+        tags: [tag],
+      });
+
+      localStorage.setItem("taggedStocks", JSON.stringify(newTaggedStocks));
+      return newTaggedStocks;
+    });
+  };
+
+  const handleCreateTag = (tagName: string) => {
+    if (!tagName || availableTags.includes(tagName)) return;
+
+    setAvailableTags((prev) => {
+      const newTags = [...prev, tagName];
+      localStorage.setItem("availableTags", JSON.stringify(newTags));
+      return newTags;
+    });
+    setNewTag("");
+  };
+
+  const handleRemoveFromTag = (code: string, tag: string) => {
+    setTaggedStocks((prev) => {
+      const newTaggedStocks = { ...prev };
+      newTaggedStocks[tag] =
+        newTaggedStocks[tag]?.filter((stock) => stock.code !== code) || [];
+
+      if (newTaggedStocks[tag].length === 0) {
+        delete newTaggedStocks[tag];
+      }
+
+      localStorage.setItem("taggedStocks", JSON.stringify(newTaggedStocks));
+      return newTaggedStocks;
+    });
+  };
+
+  const handleDeleteTag = (tagToDelete: string) => {
+    setTaggedStocks((prev) => {
+      const newTaggedStocks = { ...prev };
+      delete newTaggedStocks[tagToDelete];
+      return newTaggedStocks;
+    });
+    setAvailableTags((prev) => prev.filter((tag) => tag !== tagToDelete));
   };
 
   const handleRefresh = async () => {
@@ -295,26 +474,27 @@ export const Stock = () => {
         .get("/get-stock/" + i + "/" + i, {
           headers: {
             "coustom-cookie": cookie,
-            "hexin-v": hexinV,
+            "hexin-v": getHeXinVFromCookie(cookie),
           },
         })
         .then((res) => {
-          const data = parseHTMLTable(res);
+          const data = parseHTMLTable(res as unknown as string[]);
           dataList.push(...data);
         })
         .catch(() => {
           // setLoading(false);
         });
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
     setLoading(false);
     console.log("res ====", dataList);
     localStorage.setItem("dataSource", JSON.stringify(dataList));
     setDataSource(dataList);
   };
+
   const handleRefreshAndAppend = async () => {
     // 这里可以添加刷新数据的逻辑
-    console.log("刷新数据");
+    console.log("增加数据");
     setLoading(true);
     const dataList = [...dataSource];
     for (let i = dataList.length / 20 + 1; i <= pageEnd; i++) {
@@ -322,17 +502,17 @@ export const Stock = () => {
         .get("/get-stock/" + i + "/" + i, {
           headers: {
             "coustom-cookie": cookie2,
-            "hexin-v": hexinV,
+            "hexin-v": getHeXinVFromCookie(cookie2),
           },
         })
         .then((res) => {
-          const data = parseHTMLTable(res);
+          const data = parseHTMLTable(res as unknown as string[]);
           dataList.push(...data);
         })
         .catch(() => {
           // setLoading(false);
         });
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
     setLoading(false);
     console.log("res ====", dataList);
@@ -378,62 +558,12 @@ export const Stock = () => {
   }, [dataSource, filterObj]);
 
   return (
-    <div style={{ padding: "20px" }}>
-      {Object.entries(observedStocks).length > 0 && (
-        <div
-          style={{
-            marginBottom: "16px",
-            background: "#f5f5f5",
-            padding: "16px",
-            borderRadius: "8px",
-          }}
-        >
-          <div style={{ fontWeight: "500", marginBottom: "8px" }}>
-            观察列表：
-          </div>
-          {Object.entries(observedStocks)
-            .sort((a, b) => new Date(b[0]) - new Date(a[0])) // Sort by date descending
-            .map(([date, stocks]) => (
-              <div key={date} style={{ marginBottom: "16px" }}>
-                <div
-                  style={{
-                    fontWeight: "500",
-                    fontSize: "14px",
-                    marginBottom: "8px",
-                    color: "#666",
-                  }}
-                >
-                  {date}
-                </div>
-                <div>
-                  {stocks.map((stock) => (
-                    <Tag
-                      key={stock.code}
-                      closable
-                      onClose={() => handleAddToObserved(stock.code)}
-                      style={{ marginRight: "8px", marginBottom: "8px" }}
-                    >
-                      <a
-                        href={`https://stockpage.10jqka.com.cn/${stock.code}/`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {stock.code} - {stock.name}
-                      </a>
-                    </Tag>
-                  ))}
-                </div>
-              </div>
-            ))}
-        </div>
-      )}
-
+    <div style={{ padding: "20px", paddingBottom: "100px" }}>
       <FilterControls
         loading={loading}
         cookie={cookie}
         setCookie={(value) => {
           setCookie(value);
-          setCookieObj(parseCookie(value));
           localStorage.setItem("cookie", value);
         }}
         cookie2={cookie2}
@@ -447,22 +577,34 @@ export const Stock = () => {
         setPageEnd={setPageEnd}
         onRefresh={handleRefresh}
         onRefreshAndAppend={handleRefreshAndAppend}
+        tongHuaShunUrl={tongHuaShunUrl}
       />
+      {Object.entries(taggedStocks).length > 0 && (
+        <TaggedStocksList
+          taggedStocks={taggedStocks}
+          onRemoveFromTag={handleRemoveFromTag}
+        />
+      )}
+      <ObservationList
+        observedStocks={observedStocks}
+        onDeleteDate={handleDeleteDateStocks}
+        onRemoveStock={handleAddToObserved}
+      />
+
       <FilterConditions
         filterObj={filterObj}
         onChange={(v) => {
           localStorage.setItem("filterObj", JSON.stringify(v));
-          setFilterObj(v);
+          setFilterObj(v as any);
         }}
       />
       <Table
         dataSource={filterDataSource}
-        columns={columns}
+        columns={columns as any}
         scroll={{ x: 1500, y: "calc(100vh - 500px)" }}
         pagination={{
-          total: dataSource.length,
-          defaultPageSize: 50,
-          pageSize,
+          total: filterDataSource.length,
+          defaultPageSize: 100,
           showSizeChanger: true,
           showQuickJumper: true,
           onChange: (page, pageSize) => {
@@ -471,27 +613,6 @@ export const Stock = () => {
           showTotal: (total) => `共 ${total} 条`,
         }}
         sortDirections={["descend", "ascend", "descend"]}
-        style={{
-          height: "calc(100vh - 500px)",
-          maxWidth: "90vw",
-        }}
-      />
-
-      <iframe
-        ref={iframeRef}
-        src={tongHuaShunUrl}
-        style={{
-          position: "relative",
-          top: "200px",
-          left: 0,
-          width: "100%",
-          height: "900px",
-          border: "none",
-          zIndex: 9999,
-        }}
-        onLoad={() => {
-          console.log("iframe loaded");
-        }}
       />
     </div>
   );
