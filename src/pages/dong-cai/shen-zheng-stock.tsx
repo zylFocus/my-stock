@@ -37,8 +37,8 @@ const defaultFilterObj = {
   },
   /** 换手 */
   turnoverRate: {
-    min: 5,
-    max: 10,
+    min: 0,
+    max: 5,
     enabled: false,
   },
   /** 量比 */
@@ -56,7 +56,7 @@ const defaultFilterObj = {
   /** 振幅 */
   amplitude: {
     min: 0,
-    max: 100,
+    max: 10,
     enabled: false,
   },
   /** 市盈率 */
@@ -67,9 +67,9 @@ const defaultFilterObj = {
   },
 };
 
-export const DongCaiStock: React.FC = () => {
+export const ShenZhengStock: React.FC = () => {
   const [dataSource, setDataSource] = useState<DongCaiStockData[]>([]);
-  const [queryPageSize, setQueryPageSize] = useState(200);
+  const [queryPageSize, setQueryPageSize] = useState(1000);
   const [loading, setLoading] = useState(false);
 
   const [filterObj, setFilterObj] = useState(defaultFilterObj);
@@ -84,7 +84,7 @@ export const DongCaiStock: React.FC = () => {
 
   const [searchText, setSearchText] = useState("");
 
-  const columns = [
+  const columns: ColumnsType<DongCaiStockData> = [
     {
       title: "序号",
       dataIndex: "index",
@@ -334,7 +334,7 @@ export const DongCaiStock: React.FC = () => {
     if (cookieStr) {
       setCookie(cookieStr);
     }
-    const dataSource = localStorage.getItem("dongCaiDataSource");
+    const dataSource = localStorage.getItem("shenADataSource");
     if (dataSource) {
       setDataSource(JSON.parse(dataSource));
     }
@@ -353,7 +353,7 @@ export const DongCaiStock: React.FC = () => {
       setAvailableTags(JSON.parse(storedTags));
     }
     // Load filter settings from localStorage
-    const storedFilterObj = localStorage.getItem("filterObj");
+    const storedFilterObj = localStorage.getItem("shenAFilterObj");
     if (storedFilterObj) {
       setFilterObj(JSON.parse(storedFilterObj));
     }
@@ -486,7 +486,7 @@ export const DongCaiStock: React.FC = () => {
     console.log("刷新数据");
     setLoading(true);
     const res = await request
-      .get(`/dong-fang-cai-fu/data/${queryPageSize}`, {
+      .get(`/dong-fang-cai-fu/shen-a-data/${queryPageSize}`, {
         headers: {
           "coustom-cookie": cookie,
         },
@@ -497,7 +497,7 @@ export const DongCaiStock: React.FC = () => {
     setLoading(false);
     const dataList = transformToDongCaiStockDataList(res.data.diff);
     console.log("res ====", dataList);
-    localStorage.setItem("dongCaiDataSource", JSON.stringify(dataList));
+    localStorage.setItem("shenADataSource", JSON.stringify(dataList));
     setDataSource(dataList);
   };
 
@@ -574,7 +574,7 @@ export const DongCaiStock: React.FC = () => {
       <FilterConditions
         filterObj={filterObj}
         onChange={(v) => {
-          localStorage.setItem("filterObj", JSON.stringify(v));
+          localStorage.setItem("shenAFilterObj", JSON.stringify(v));
           setFilterObj(v as any);
         }}
         onSearch={setSearchText}
@@ -582,7 +582,7 @@ export const DongCaiStock: React.FC = () => {
       />
       <Table
         dataSource={filterDataSource}
-        columns={columns as any}
+        columns={columns}
         scroll={{ x: 1500, y: "calc(100vh - 500px)" }}
         pagination={{
           total: filterDataSource.length,

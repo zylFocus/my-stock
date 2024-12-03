@@ -65,7 +65,7 @@ export const FilterControls: React.FC<FilterControlsProps> = ({
           <span style={{ width: "70px", fontWeight: "500" }}>查询数量:</span>
           <InputNumber
             min={1}
-            max={1000}
+            max={2000}
             value={queryPageSize}
             style={{ flex: 1 }}
             onChange={(value) => setQueryPageSize(value)}

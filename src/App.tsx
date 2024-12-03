@@ -2,16 +2,31 @@ import React from "react";
 import { Stock } from "./pages/tong-hua-shun/stock";
 import { Note } from "./pages/Note";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { DongCaiStock } from "./pages/dong-cai/dong-cai-stock";
+import { ShangZhengStock } from "./pages/dong-cai/shang-zheng-stock";
+import { Tabs } from "antd";
+import { ShenZhengStock } from "./pages/dong-cai/shen-zheng-stock";
+
+const StockTabs = () => {
+  const items = [
+    {
+      key: "shanghai",
+      label: "上证A股",
+      children: <ShangZhengStock />,
+    },
+    {
+      key: "shenzheng",
+      label: "深证A股",
+      children: <ShenZhengStock />,
+    },
+  ];
+
+  return <Tabs defaultActiveKey="shanghai" items={items} />;
+};
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <DongCaiStock />,
-  },
-  {
-    path: "/dong-cai",
-    element: <DongCaiStock />,
+    element: <StockTabs />,
   },
   {
     path: "/tong-hua-shun",
