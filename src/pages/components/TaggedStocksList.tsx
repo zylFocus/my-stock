@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Tag } from "antd";
 import { MdKeyboardArrowDown, MdKeyboardArrowRight } from "react-icons/md";
+import { MarketType } from "../../types";
 
 interface Stock {
   code: string;
@@ -10,11 +11,13 @@ interface Stock {
 interface TaggedStocksListProps {
   taggedStocks: Record<string, Stock[]>;
   onRemoveFromTag: (code: string, tag: string) => void;
+  marketType: MarketType;
 }
 
 const TaggedStocksList: React.FC<TaggedStocksListProps> = ({
   taggedStocks,
   onRemoveFromTag,
+  marketType,
 }) => {
   const [collapsedTags, setCollapsedTags] = useState<Record<string, boolean>>(
     {}
@@ -88,7 +91,11 @@ const TaggedStocksList: React.FC<TaggedStocksListProps> = ({
                   style={{ marginRight: "8px", marginBottom: "8px" }}
                 >
                   <a
-                    href={`https://stockpage.10jqka.com.cn/${stock.code}/`}
+                    href={
+                      marketType === "sh"
+                        ? `https://quote.eastmoney.com/kcb/${stock.code}.html`
+                        : `https://quote.eastmoney.com/sz${stock.code}.html`
+                    }
                     target="_blank"
                     rel="noopener noreferrer"
                   >

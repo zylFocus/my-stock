@@ -99,7 +99,7 @@ export const ShangZhengStock: React.FC = () => {
       width: 100,
       render: (text) => (
         <a
-          href={`https://stockpage.10jqka.com.cn/${text}/`}
+          href={`https://quote.eastmoney.com/kcb/${text}.html`}
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -563,12 +563,14 @@ export const ShangZhengStock: React.FC = () => {
         <TaggedStocksList
           taggedStocks={taggedStocks}
           onRemoveFromTag={handleRemoveFromTag}
+          marketType="sh"
         />
       )}
       <ObservationList
         observedStocks={observedStocks}
         onDeleteDate={handleDeleteDateStocks}
         onRemoveStock={handleAddToObserved}
+        marketType="sh"
       />
 
       <FilterConditions

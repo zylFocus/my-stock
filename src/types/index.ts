@@ -58,3 +58,5 @@ export interface TaggedStock {
 export interface TaggedStocks {
   [tag: string]: TaggedStock[];
 }
+
+export type MarketType = "sh" | "sz";

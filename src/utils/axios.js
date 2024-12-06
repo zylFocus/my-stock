@@ -1,12 +1,12 @@
-import axios from 'axios';
+import axios from "axios";
 
 // 创建 axios 实例
 const instance = axios.create({
-  baseURL: 'http://localhost:3000', // 这里使用我们之前创建的 Express 服务器地址
+  baseURL: "https://zzzcode.top/stock",
   timeout: 5000,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    "Content-Type": "application/json",
+  },
 });
 
 // 请求拦截器

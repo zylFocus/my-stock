@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
-import { Button, Tag, Collapse } from 'antd';
-import { ObservedStocks } from '../../types';
+import React, { useState } from "react";
+import { Button, Tag, Collapse } from "antd";
+import { MarketType, ObservedStocks } from "../../types";
 
 interface ObservationListProps {
   observedStocks: ObservedStocks;
   onDeleteDate: (date: string) => void;
   onRemoveStock: (code: string) => void;
+  marketType: MarketType;
 }
 
 export const ObservationList: React.FC<ObservationListProps> = ({
   observedStocks,
   onDeleteDate,
   onRemoveStock,
+  marketType = "sh",
 }) => {
   const [activeKey, setActiveKey] = useState<string[]>([]);
 
@@ -73,7 +75,11 @@ export const ObservationList: React.FC<ObservationListProps> = ({
                       style={{ marginRight: "8px", marginBottom: "8px" }}
                     >
                       <a
-                        href={`https://stockpage.10jqka.com.cn/${stock.code}/`}
+                        href={
+                          marketType === "sh"
+                            ? `https://quote.eastmoney.com/kcb/${stock.code}.html`
+                            : `https://quote.eastmoney.com/sz${stock.code}.html`
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                       >
