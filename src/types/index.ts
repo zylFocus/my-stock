@@ -43,6 +43,7 @@ export interface ObservedStock {
   code: string;
   name: string;
   date: string;
+  marketType: MarketType;
 }
 
 export interface ObservedStocks {
@@ -52,6 +53,7 @@ export interface ObservedStocks {
 export interface TaggedStock {
   code: string;
   name: string;
+  marketType: MarketType;
   tags: string[];
 }
 

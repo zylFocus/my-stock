@@ -99,7 +99,7 @@ export const ShenZhengStock: React.FC = () => {
       width: 100,
       render: (text) => (
         <a
-          href={`https://quote.eastmoney.com/sz${text}.htmll`}
+          href={`https://quote.eastmoney.com/sz${text}.html`}
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -395,6 +395,7 @@ export const ShenZhengStock: React.FC = () => {
         newStocks[today].push({
           code: stockInfo.code,
           name: stockInfo.name,
+          marketType: "sz",
           date: today,
         });
       }
@@ -438,6 +439,7 @@ export const ShenZhengStock: React.FC = () => {
       newTaggedStocks[tag].push({
         code: stockInfo.code,
         name: stockInfo.name,
+        marketType: "sz",
         tags: [tag],
       });
 
@@ -563,14 +565,12 @@ export const ShenZhengStock: React.FC = () => {
         <TaggedStocksList
           taggedStocks={taggedStocks}
           onRemoveFromTag={handleRemoveFromTag}
-          marketType="sz"
         />
       )}
       <ObservationList
         observedStocks={observedStocks}
         onDeleteDate={handleDeleteDateStocks}
         onRemoveStock={handleAddToObserved}
-        marketType="sz"
       />
 
       <FilterConditions

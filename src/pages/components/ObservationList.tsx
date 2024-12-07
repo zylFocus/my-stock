@@ -6,14 +6,12 @@ interface ObservationListProps {
   observedStocks: ObservedStocks;
   onDeleteDate: (date: string) => void;
   onRemoveStock: (code: string) => void;
-  marketType: MarketType;
 }
 
 export const ObservationList: React.FC<ObservationListProps> = ({
   observedStocks,
   onDeleteDate,
   onRemoveStock,
-  marketType = "sh",
 }) => {
   const [activeKey, setActiveKey] = useState<string[]>([]);
 
@@ -76,7 +74,7 @@ export const ObservationList: React.FC<ObservationListProps> = ({
                     >
                       <a
                         href={
-                          marketType === "sh"
+                          stock.marketType === "sh"
                             ? `https://quote.eastmoney.com/kcb/${stock.code}.html`
                             : `https://quote.eastmoney.com/sz${stock.code}.html`
                         }

@@ -6,18 +6,17 @@ import { MarketType } from "../../types";
 interface Stock {
   code: string;
   name: string;
+  marketType: MarketType;
 }
 
 interface TaggedStocksListProps {
   taggedStocks: Record<string, Stock[]>;
   onRemoveFromTag: (code: string, tag: string) => void;
-  marketType: MarketType;
 }
 
 const TaggedStocksList: React.FC<TaggedStocksListProps> = ({
   taggedStocks,
   onRemoveFromTag,
-  marketType,
 }) => {
   const [collapsedTags, setCollapsedTags] = useState<Record<string, boolean>>(
     {}
@@ -92,7 +91,7 @@ const TaggedStocksList: React.FC<TaggedStocksListProps> = ({
                 >
                   <a
                     href={
-                      marketType === "sh"
+                      stock.marketType === "sh"
                         ? `https://quote.eastmoney.com/kcb/${stock.code}.html`
                         : `https://quote.eastmoney.com/sz${stock.code}.html`
                     }

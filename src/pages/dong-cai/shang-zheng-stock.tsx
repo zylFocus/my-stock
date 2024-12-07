@@ -396,6 +396,7 @@ export const ShangZhengStock: React.FC = () => {
           code: stockInfo.code,
           name: stockInfo.name,
           date: today,
+          marketType: "sh",
         });
       }
 
@@ -438,6 +439,7 @@ export const ShangZhengStock: React.FC = () => {
       newTaggedStocks[tag].push({
         code: stockInfo.code,
         name: stockInfo.name,
+        marketType: "sh",
         tags: [tag],
       });
 
@@ -563,14 +565,12 @@ export const ShangZhengStock: React.FC = () => {
         <TaggedStocksList
           taggedStocks={taggedStocks}
           onRemoveFromTag={handleRemoveFromTag}
-          marketType="sh"
         />
       )}
       <ObservationList
         observedStocks={observedStocks}
         onDeleteDate={handleDeleteDateStocks}
         onRemoveStock={handleAddToObserved}
-        marketType="sh"
       />
 
       <FilterConditions
