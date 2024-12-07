@@ -565,12 +565,14 @@ export const ShangZhengStock: React.FC = () => {
         <TaggedStocksList
           taggedStocks={taggedStocks}
           onRemoveFromTag={handleRemoveFromTag}
+          key="sh"
         />
       )}
       <ObservationList
         observedStocks={observedStocks}
         onDeleteDate={handleDeleteDateStocks}
         onRemoveStock={handleAddToObserved}
+        key="sh"
       />
 
       <FilterConditions

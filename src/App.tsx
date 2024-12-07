@@ -2,6 +2,7 @@ import React from "react";
 import { ShangZhengStock } from "./pages/dong-cai/shang-zheng-stock";
 import { Tabs } from "antd";
 import { ShenZhengStock } from "./pages/dong-cai/shen-zheng-stock";
+import { Note } from "./pages/note/note";
 
 const StockTabs = () => {
   const items = [
@@ -14,6 +15,11 @@ const StockTabs = () => {
       key: "shenzheng",
       label: "深证A股",
       children: <ShenZhengStock />,
+    },
+    {
+      key: "note",
+      label: "笔记",
+      children: <Note />,
     },
   ];
 
